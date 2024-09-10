@@ -29,6 +29,8 @@ Slijedi objašnjenje i upute za samostalno uređivanje Docker Compose konfigurac
 - Vrijednost varijable `APIFW_REQUEST_VALIDATION` određuje hoće li vatrozid blokirati maliciozne dolazne zahtjeve (vrijednost `BLOCK`), bilježiti ih bez blokiranja (`LOG_ONLY`) ili ne provoditi provjeru dolaznih zahtjeva (`DISABLE`)
 - Analogno vrijedi za varijablu `APIFW_RESPONSE_VALIDATION` koja određuje način rada za zahtjeve koji pristižu vatrozidu kao API-jev odgovor
 
+Zahtjevima koji su podložni ranjivosti Mass Assignment predlaže se dopunjavanje odgovarajućeg zapisa u OpenAPI specifikaciji sa parametrom `additionalProperties` postavljenim na `false`.
+
 ## Wallarm API Firewall sa modulom za ModSecurity pravila
 
 U projektu korišten je [OWASP CoreRuleSet](https://github.com/coreruleset/coreruleset) skup ModSecurity pravila. Za korištenje modula potrebno je prethodno navedenoj konfiguraciji vatrozida dodati još dvije varijable okruženja. Gotova konfiguracija jedostupna u repozitoriju pod imenom `docker-compose_appsec_local.yml`.
@@ -65,3 +67,11 @@ Ovako konfiguriran sustav koristit će Web UI za nadgledanje i upravljanje vatro
 - Za dobivanje tokena potrebno je prijaviti se u [sustav](https://my.openappsec.io/), otići na Profiles karticu, kreirati novi profil i u polju Sub-type odabrati: Dual Container - NGINX Proxy Manager + open-appsec
 - Sada je potrebno kreirati Nginx posrednika kroz NPM sučelje na jednak način kao što je opisano u prethodnoj konfiguraciji
 -  Nakon aktivacije posrednika potrebno je aktivirati zaštitu nad njime, na kartici Assets u web sučelju potrebno je kreirati novi resurs unutar kojeg je u polju Profiles potrebno odabrati prethodno kreirani profil te u API URLs polju dodati vrijednost `http://localhost:8081`.
+
+## Konfiguracija zaštite Open-appsec vatrozidom
+Za izvršavanje sljedećih izmjena potrebno je odabrati odgovarajući resurs u Assets kartici. U novootvorenom sučelju potrebno je podesiti sljedeće stavke:
+- U Threat Protection kartici, pod Advanced dostupna je opcija `Non-valid HTTP Methods` koja postavljena na `Yes` spriječava zahtjeve sa HTTP metodama van sljedećeg skupa: `GET, POST, DELETE, PATCH, PUT, CONNECT, OPTIONS, HEAD, TRACE`
+- Na kartici Rate Limit postaviti `Mode` na `Prevent` te kreirati novo pravilo za frekvenciju zahtjeva:
+	- URI postaviti na `/` kako bi pravilo vrijedilo za sve krajnje točke API-ja
+	- Frekvenciju postaviti na 100 zahtjeva po sekundi
+- Nakon što model strojnog učenja u sklopu vatrozida dostigne dovoljnu razinu utreniranosti, na Threat Protection kartici potrebno je `Mode` postaviti na `Prevent` kako bi detektirani maliciozni zahtjevi bili blokirani
