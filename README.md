@@ -1,6 +1,6 @@
 U projektu su korišteni vatrozidi [Wallarm API Firewall](https://github.com/wallarm/api-firewall) i [Open-appsec](https://github.com/openappsec/open-appsec-npm). Za XS2A API poslužila je implementacija [Adorsys Core XS2A](https://github.com/adorsys/xs2a).
 
-# Instalacija Adorsys Core XS2A
+## Instalacija Adorsys Core XS2A
 
 Za instalaciju Adorsys Core XS2A API-ja potrebno je upisati sljedeće naredbe:
 ```bash
