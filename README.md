@@ -14,7 +14,7 @@ XS2A se pokreće sa naredbom `docker-compose up`. U repozitoriju su dostupne dat
 ## Wallarm API Firewall
 
 Za pokretanje Wallarm API Firewalla koristi se datoteka `docker-compose_wallarm.yml`.
-Vatrozid se konfigurira preko Docker varijabli okruženja unutar navedene datoteke.
+Vatrozid se konfigurira preko Docker varijabli okruženja unutar navedene datoteke. 
 Slijedi objašnjenje i upute za samostalno uređivanje Docker Compose konfiguracije.
 
 - Vatrozid i API postavljeni su na istu Docker mrežu `xs2a-net` definiranu u `networks` polju svih kontejnera.
@@ -31,13 +31,37 @@ Slijedi objašnjenje i upute za samostalno uređivanje Docker Compose konfigurac
 
 ## Wallarm API Firewall sa modulom za ModSecurity pravila
 
-U projektu korišten je [OWASP CoreRuleSet](https://github.com/coreruleset/coreruleset) skup ModSecurity pravila. Za korištenje modula potrebno je prethodno navedenoj konfiguraciji vatrozida dodati još dvije varijable okruženja.
+U projektu korišten je [OWASP CoreRuleSet](https://github.com/coreruleset/coreruleset) skup ModSecurity pravila. Za korištenje modula potrebno je prethodno navedenoj konfiguraciji vatrozida dodati još dvije varijable okruženja. Gotova konfiguracija jedostupna u repozitoriju pod imenom `docker-compose_appsec_local.yml`.
 
 - U varijabli `APIFW_MODSEC_CONF_FILES` navode se putanje konfiguracijskih datoteka za sam modul, odvojene znakom `;`
 - Korištene su dvije konfiguracijske datoteke:
 	- [Preporučena konfiguracijska datoteka Coraza biblioteke](https://github.com/corazawaf/coraza/blob/main/coraza.conf-recommended) u kojoj je potrebno izvršiti promjenu u `SecRuleEngine` direktivi koja je početno postavljena na `DetectionOnly`, a potrebno ju je postaviti na `On` kako bi modul blokirao zahtjeve
 	- [Demonstracijska konfiguracijska datoteka CRS projekta](https://github.com/coreruleset/coreruleset/blob/main/crs-setup.conf.example) unutar koje je potrebno dopustiti inicijalno blokirane HTTP metode PUT i DELETE korištene od PSD2 API-ja; potrebno je u dokumentu potražiti liniju `setvar:'tx.allowed_methods=GET HEAD POST OPTIONS'`, dodati `PUT` i `DELETE` te otkomentirati pravilo
-	-
 - `APIFW_MODSEC_RULES_DIR` sadrži putanju na direktorij sa ModSec pravilima; korištena su [OWASP CRS pravila](https://github.com/coreruleset/coreruleset/tree/main/rules)
 
+## Open-appsec sa NPM-om, lokalno upravljanje
+Za podizanje Open-appsec vatrozida koristit će se posebno dizajniran [kontejner Nginx Proxy Managera](https://github.com/openappsec/open-appsec-npm) (NPM) koji sadrži Open-appsec dodatak.
 
+U nastavku je opisan proces podizanja Open-appsec vatrozida uključujući podešavanje Nginx posrednika kroz NPM sučelje.
+
+- Unutar XS2A direktorija naredbom `mkdir ./appsec-localconfig` potrebno je kreirati direktorij u koji je potrebno smjestiti [inicijalnu lokalnu konfiguraciju](https://github.com/openappsec/open-appsec-npm/blob/main/deployment/local_policy.yaml)
+- U XS2A direktorij postaviti Docker Compose konfiguraciju dostupnu u ovom repozitoriju pod imenom `docker-compose_appsec_local.yml` i pokrenuti
+- NPM sučelje za upravljanje posrednicima dostupno je na adresi `http://[hostname or IP of your host]:81`
+- Za inicijalnu prijavu u sustav potrebni su sljedeći podaci
+	- E-mail address: admin@example.com
+	- Password: changeme
+- Potrebno je kreirati novi Proxy Host i u kreacijski obrazac unijeti sljedeće podatke:
+	- Domain Names: localhost
+	- Scheme: http
+	- Forward Hostname / IP: xs2a-standalone-starter
+	- Forward Port: 8080
+- U ovako postavljenom sustavu, konfiguraciju vatrozida je moguće izmijenjivati samo uređivanjem lokalne deklarativne konfiguracije na putanji `./appsec-localconfig/local_policy.yaml`
+
+## Open-appsec sa NPM-om, središnje upravljanje
+Ovako konfiguriran sustav koristit će Web UI za nadgledanje i upravljanje vatrozidom. 
+
+- Za podizanje koristi se Docker Compose konfiguracija `docker-compose_appsec_webui.yml` iz ovog repozitorija
+- Na kraju konfiguracije nalazi se mjesto za upis tokena preuzetog sa web sučelja koje služi za prijavu agenta u središnji sustav
+- Za dobivanje tokena potrebno je prijaviti se u [sustav](https://my.openappsec.io/), otići na Profiles karticu, kreirati novi profil i u polju Sub-type odabrati: Dual Container - NGINX Proxy Manager + open-appsec
+- Sada je potrebno kreirati Nginx posrednika kroz NPM sučelje na jednak način kao što je opisano u prethodnoj konfiguraciji
+-  Nakon aktivacije posrednika potrebno je aktivirati zaštitu nad njime, na kartici Assets u web sučelju potrebno je kreirati novi resurs unutar kojeg je u polju Profiles potrebno odabrati prethodno kreirani profil te u API URLs polju dodati vrijednost `http://localhost:8081`.
